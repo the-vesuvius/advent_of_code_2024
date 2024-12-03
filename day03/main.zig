@@ -11,12 +11,25 @@ pub fn main() !void {
     var sum: u64 = 0;
     var num_pair: [2]i32 = undefined;
 
+    var do: bool = true;
+
     var i: usize = 0;
     while (input[i] != 0) : (i += 1) {
-        i = skip_until('m', input, i) catch break;
-        if (input[i + 1] != 'u') continue;
-        if (input[i + 2] != 'l') continue;
-        if (input[i + 3] != '(') continue;
+        i = skip_until("md", input, i) catch break;
+
+        if (input[i] == 'd') {
+            if (std.mem.eql(u8, "do()", input[i .. i + 4])) {
+                do = true;
+            }
+
+            if (std.mem.eql(u8, "don't()", input[i .. i + 7])) {
+                do = false;
+            }
+
+            continue;
+        }
+
+        if (!std.mem.eql(u8, "mul(", input[i .. i + 4])) continue;
 
         i += 4;
         i = try read_number(&num_buf, input, i);
@@ -37,7 +50,9 @@ pub fn main() !void {
 
         if (input[i] != ')') continue;
 
-        sum += @intCast(num_pair[0] * num_pair[1]);
+        if (do) {
+            sum += @intCast(num_pair[0] * num_pair[1]);
+        }
     }
     std.debug.print("SUM: {d}\n", .{sum});
 }
@@ -51,15 +66,17 @@ fn read_number(buf: *std.ArrayList(u8), data: *const [N:0]u8, idx: usize) !usize
     return i;
 }
 
-fn skip_until(char: u8, data: *const [N:0]u8, idx: usize) FileError!usize {
+fn skip_until(chars: []const u8, data: *const [N:0]u8, idx: usize) FileError!usize {
     var i: usize = idx;
-    while (data[i] != char) : (i += 1) {
-        if (data[i] == 0) {
-            return FileError.Eof;
+    while (data[i] != 0) : (i += 1) {
+        for (chars) |char| {
+            if (char == data[i]) {
+                return i;
+            }
         }
     }
 
-    return i;
+    return FileError.Eof;
 }
 
 const FileError = error{Eof};
