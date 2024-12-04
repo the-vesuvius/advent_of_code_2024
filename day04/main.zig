@@ -25,7 +25,7 @@ pub fn main() !void {
 
     for (input_matrix, 0..) |row_val, row| {
         for (row_val, 0..) |col_val, col| {
-            if (col_val == 'X') {
+            if (col_val == 'A') {
                 total += seek_xmas(input_matrix, row, col);
             }
         }
@@ -34,25 +34,71 @@ pub fn main() !void {
 }
 
 fn seek_xmas(data: [HEIGHT][WIDTH]u8, start_row: usize, start_col: usize) usize {
-    const results: [8]bool = .{
-        check_direction(data, start_row, start_col, -1, -1),
-        check_direction(data, start_row, start_col, -1, 0),
-        check_direction(data, start_row, start_col, -1, 1),
+    const left = check_left_mas(data, start_row, start_col) catch false;
+    const right = check_right_mas(data, start_row, start_col) catch false;
 
-        check_direction(data, start_row, start_col, 0, -1),
-        check_direction(data, start_row, start_col, 0, 1),
+    if (left and right) return 1;
+    return 0;
+}
 
-        check_direction(data, start_row, start_col, 1, 1),
-        check_direction(data, start_row, start_col, 1, 0),
-        check_direction(data, start_row, start_col, 1, -1),
-    };
+fn check_left_mas(data: [HEIGHT][WIDTH]u8, start_row: usize, start_col: usize) !bool {
+    const allocator = std.heap.page_allocator;
+    var buf = std.ArrayList(u8).init(allocator);
 
-    var total: usize = 0;
-    for (results) |res| {
-        if (res) total += 1;
+    const start_row_signed: i32 = @intCast(start_row);
+    const start_col_signed: i32 = @intCast(start_col);
+
+    var row_signed = start_row_signed - 1;
+    var col_signed = start_col_signed - 1;
+    if (row_signed >= 0 and col_signed >= 0) {
+        const row: usize = @intCast(row_signed);
+        const col: usize = @intCast(col_signed);
+        try buf.append(data[row][col]);
+    }
+    try buf.append('A');
+    row_signed = start_row_signed + 1;
+    col_signed = start_col_signed + 1;
+    if (row_signed < HEIGHT and col_signed < WIDTH) {
+        const row: usize = @intCast(row_signed);
+        const col: usize = @intCast(col_signed);
+        try buf.append(data[row][col]);
+    }
+    const left = arrayListToString(&buf, allocator) catch "";
+    if (std.mem.eql(u8, left, "MAS") or std.mem.eql(u8, left, "SAM")) {
+        return true;
     }
 
-    return total;
+    return false;
+}
+
+fn check_right_mas(data: [HEIGHT][WIDTH]u8, start_row: usize, start_col: usize) !bool {
+    const allocator = std.heap.page_allocator;
+    var buf = std.ArrayList(u8).init(allocator);
+
+    const start_row_signed: i32 = @intCast(start_row);
+    const start_col_signed: i32 = @intCast(start_col);
+
+    var row_signed = start_row_signed - 1;
+    var col_signed = start_col_signed + 1;
+    if (row_signed >= 0 and col_signed < WIDTH) {
+        const row: usize = @intCast(row_signed);
+        const col: usize = @intCast(col_signed);
+        try buf.append(data[row][col]);
+    }
+    try buf.append('A');
+    row_signed = start_row_signed + 1;
+    col_signed = start_col_signed - 1;
+    if (row_signed < HEIGHT and col_signed >= 0) {
+        const row: usize = @intCast(row_signed);
+        const col: usize = @intCast(col_signed);
+        try buf.append(data[row][col]);
+    }
+    const right = arrayListToString(&buf, allocator) catch "";
+    if (std.mem.eql(u8, right, "MAS") or std.mem.eql(u8, right, "SAM")) {
+        return true;
+    }
+
+    return false;
 }
 
 fn check_direction(data: [HEIGHT][WIDTH]u8, start_row: usize, start_col: usize, row_dir: i8, col_dir: i8) bool {
@@ -76,4 +122,11 @@ fn check_direction(data: [HEIGHT][WIDTH]u8, start_row: usize, start_col: usize, 
     }
 
     return true;
+}
+
+fn arrayListToString(arrayList: *const std.ArrayList(u8), allocator: std.mem.Allocator) ![]u8 {
+    const slice = arrayList.items; // Get the slice from the ArrayList
+    const result = try allocator.alloc(u8, slice.len); // Allocate memory for the result
+    std.mem.copyForwards(u8, result, slice); // Copy the data from the ArrayList slice to the allocated buffer
+    return result;
 }
