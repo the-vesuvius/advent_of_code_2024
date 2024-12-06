@@ -57,14 +57,34 @@ func main() {
 		line := scanner.Text()
 
 		orderingRow := updateProcessor(line)
-		if !isOrderingRowValid(orderingRow, pagesMap) {
+		if isOrderingRowValid(orderingRow, pagesMap) {
 			continue
 		}
 
-		sum += getMiddle(orderingRow)
+		fixedOrdering := fixOrdering(orderingRow, pagesMap)
+
+		sum += getMiddle(fixedOrdering)
 	}
 
 	fmt.Println(sum)
+}
+
+func fixOrdering(row []int, pagesMap map[int][]int) []int {
+	res := row[0:]
+
+	for !isOrderingRowValid(res, pagesMap) {
+		for i, val := range res {
+			slice := pagesMap[val]
+			for _, mustBeEarlier := range slice {
+				if idx := sliceContains(res[i:], mustBeEarlier); idx >= 0 {
+					res[i], res[idx+i] = res[idx+i], res[i]
+					break
+				}
+			}
+		}
+	}
+
+	return res
 }
 
 func isOrderingRowValid(row []int, pagesMap map[int][]int) bool {
@@ -72,7 +92,7 @@ func isOrderingRowValid(row []int, pagesMap map[int][]int) bool {
 	for _, page := range row {
 		for pageSoFar := range pagesSoFar {
 			pg := pagesMap[pageSoFar]
-			if sliceContains(pg, page) {
+			if sliceContains(pg, page) >= 0 {
 				return false
 			}
 		}
@@ -82,13 +102,13 @@ func isOrderingRowValid(row []int, pagesMap map[int][]int) bool {
 	return true
 }
 
-func sliceContains(slice []int, num int) bool {
-	for _, n := range slice {
+func sliceContains(slice []int, num int) int {
+	for i, n := range slice {
 		if n == num {
-			return true
+			return i
 		}
 	}
-	return false
+	return -1
 }
 
 func getMiddle(slice []int) int {
