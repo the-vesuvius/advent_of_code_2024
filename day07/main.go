@@ -48,8 +48,9 @@ func isValid(row []int) bool {
 
 	err1 := step(expectedResult, numbers[0], numbers[1:], "+")
 	err2 := step(expectedResult, numbers[0], numbers[1:], "*")
+	err3 := step(expectedResult, numbers[0], numbers[1:], "||")
 
-	return err1 == nil || err2 == nil
+	return err1 == nil || err2 == nil || err3 == nil
 }
 
 func step(expected int, resultSoFar int, numbers []int, operator string) error {
@@ -64,14 +65,23 @@ func step(expected int, resultSoFar int, numbers []int, operator string) error {
 		resultSoFar = resultSoFar + numbers[0]
 	case "*":
 		resultSoFar = resultSoFar * numbers[0]
+	case "||":
+		resultSoFar = concat(resultSoFar, numbers[0])
 	}
 
 	err1 := step(expected, resultSoFar, numbers[1:], "+")
 	err2 := step(expected, resultSoFar, numbers[1:], "*")
+	err3 := step(expected, resultSoFar, numbers[1:], "||")
 
-	if err1 == nil || err2 == nil {
+	if err1 == nil || err2 == nil || err3 == nil {
 		return nil
 	}
 
 	return errors.New("oh no")
+}
+
+func concat(a, b int) int {
+	resStr := strconv.Itoa(a) + strconv.Itoa(b)
+	res, _ := strconv.Atoi(resStr)
+	return res
 }
